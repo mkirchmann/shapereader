@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.geotools.data.DataAccess;
+import org.geotools.data.DataStore;
+import org.geotools.data.DataStoreFinder;
 import org.geotools.data.FeatureSource;
 import org.geotools.data.FileDataStore;
 import org.geotools.data.FileDataStoreFinder;
@@ -21,6 +23,8 @@ import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.data.store.ContentEntry;
 import org.geotools.data.util.DefaultProgressListener;
+import org.geotools.feature.FeatureCollection;
+import org.geotools.feature.FeatureIterator;
 import org.geotools.feature.NameImpl;
 import org.opengis.feature.Feature;
 import org.opengis.feature.FeatureVisitor;
@@ -28,84 +32,83 @@ import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
+import org.opengis.feature.type.PropertyDescriptor;
+import org.opengis.filter.Filter;
 import org.opengis.util.ProgressListener;
 
 public class ShapeReader {
+	
+	private static final NameImpl ZH_NAME_IMPL = new NameImpl("NAME_ZH");
+	
+	
+	private static final String SOUTH="南";
+	private static final String EAST="东";
+	private static final String NORTH="北";
+	private static final String WEST="西";
+	private static final String TRAIN="火车";
+	private static final String FAST_TRAIN="高铁";
+	private static final String STATION="站";
+	
+	
+	
 	public static void main(String[] args) throws IOException {
 		// read 
 		// https://docs.geotools.org/latest/userguide/tutorial/quickstart/maven.html
 		
 		
 		String path="/Users/michaelkirchmann/git/shapefile/src/main/resources/China_HSR_2016_stations";
-		File shapeFile = new File(new File(path), "China_HSR_2016_stations.shp");
-		// Now, let's set the parameters that we are going to use to tell the
-		// DataStoreFactory which file to use and indicate that we need to store a
-		// spatial index when we create our DataStore:
+		File file = new File(new File(path), "China_HSR_2016_stations.shp");
+		
+		
+		
+        Map<String, Object> map = new HashMap<>();
+        map.put("url", file.toURI().toURL());
 
-		FileDataStore store = FileDataStoreFinder.getDataStore(shapeFile);
-		SimpleFeatureSource featureSource = store.getFeatureSource();
+        DataStore dataStore = DataStoreFinder.getDataStore(map);
+        String typeName = dataStore.getTypeNames()[0];
 
-		SimpleFeatureCollection features = featureSource.getFeatures();
-		NameImpl zhNameImpl = new NameImpl("NAME_ZH");
-		FeatureVisitor visitor = new FeatureVisitor() {
+        FeatureSource<SimpleFeatureType, SimpleFeature> source =
+                dataStore.getFeatureSource(typeName);
+        Filter filter = Filter.INCLUDE; // ECQL.toFilter("BBOX(THE_GEOM, 10,20,30,40)")
+        FeatureCollection<SimpleFeatureType, SimpleFeature> collection = source.getFeatures(filter);
+        try (FeatureIterator<SimpleFeature> features = collection.features()) {
+            while (features.hasNext()) {
+                SimpleFeature feature = features.next();
+                System.out.print(feature.getID());
+                System.out.print(": ");
+                System.out.println(feature.getDefaultGeometryProperty().getValue());
+                
+                
+                Collection<Property> properties = feature.getProperties();
+                analyzeProperties(properties);
+            }
+        }
+	}
 
-			@Override
-			public void visit(Feature feature) {
-				System.out.println("-------------");
-				// System.out.println(feature.getName());
-				Collection<? extends Property> value = feature.getValue();
-				for (Property prop : value) {
-					// System.out.println("Name: '"+prop.getName()+"', type: "+prop.getType());
-					// System.out.println(prop.getValue());
-					if (zhNameImpl.equals(prop.getName())) {
-						Map<Object, Object> userData = prop.getUserData();
-						try {
-							byte[] bytes = ((String)prop.getValue()).getBytes();
-							String chinese=new String(bytes, "UTF-16");
-							System.out.println("Name (ZN): "+chinese);
-							if (chinese.endsWith("火车站")) {
-								
-							} else if (chinese.endsWith("高铁站")) {
-								
-							}
-						} catch (UnsupportedEncodingException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					} else {
+	protected static void analyzeProperties(Collection<? extends Property> value) {
+		for (Property prop : value) {
+			
+			// System.out.println("Name: '"+prop.getName()+"', type: "+prop.getType());
+			// System.out.println(prop.getValue());
+			if (ZH_NAME_IMPL.equals(prop.getName())) {
+				Map<Object, Object> userData = prop.getUserData();
+				try {
+					String rawName=(String)prop.getValue();
+					byte[] rawBytes = rawName.getBytes("ISO_8859_1");
+					String chinese=new String(rawBytes, "UTF-8");
+					System.out.println("Name (ZN): "+chinese);
+					if (chinese.endsWith("火车站")) {
+						
+					} else if (chinese.endsWith("高铁站")) {
 						
 					}
+				} catch (UnsupportedEncodingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
+			} else {
+				
 			}
-			
-		};
-
-		features.accepts(visitor, new DefaultProgressListener());
-		
-		
-		
-		System.out.println(features);
-		QueryCapabilities queryCapabilities = featureSource.getQueryCapabilities();
-		System.out.println(queryCapabilities);
-		DataAccess<SimpleFeatureType, SimpleFeature> dataStore2 = featureSource.getDataStore();
-		FeatureSource<SimpleFeatureType, SimpleFeature> featureSource2 = dataStore2.getFeatureSource(featureSource.getName());
-		System.out.println(featureSource2);
-		
-		Map<String, Serializable> params = new HashMap<>();
-		params.put("url", shapeFile.toURI().toURL());
-		params.put("create spatial index", Boolean.TRUE);
-		// Let's create the DataStoreFactory using the parameters we just created, and
-		// use that factory to create the DataStore:
-
-		ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
-
-		ShapefileDataStore dataStore = (ShapefileDataStore) dataStoreFactory.createDataStore(params);
-//				dataStore.createSchema(CITY);
-		
-		
-		List<Name> names = dataStore.getNames();
-		System.out.println(names);
-		ContentEntry entry = dataStore.getEntry(names.get(0));
-		System.out.println(entry);
+		}
 	}
 }
