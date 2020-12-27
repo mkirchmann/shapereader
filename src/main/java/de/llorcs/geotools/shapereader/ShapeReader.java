@@ -2,39 +2,28 @@ package de.llorcs.geotools.shapereader;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
-import org.geotools.data.DataAccess;
 import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFinder;
 import org.geotools.data.FeatureSource;
-import org.geotools.data.FileDataStore;
-import org.geotools.data.FileDataStoreFinder;
-import org.geotools.data.QueryCapabilities;
-import org.geotools.data.shapefile.ShapefileDataStore;
-import org.geotools.data.shapefile.ShapefileDataStoreFactory;
-import org.geotools.data.simple.SimpleFeatureCollection;
-import org.geotools.data.simple.SimpleFeatureSource;
-import org.geotools.data.store.ContentEntry;
-import org.geotools.data.util.DefaultProgressListener;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.geotools.feature.NameImpl;
-import org.opengis.feature.Feature;
-import org.opengis.feature.FeatureVisitor;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.feature.type.Name;
-import org.opengis.feature.type.PropertyDescriptor;
 import org.opengis.filter.Filter;
-import org.opengis.util.ProgressListener;
+
+import com.ibm.icu.text.Transliterator;
 
 public class ShapeReader {
 	
@@ -49,6 +38,19 @@ public class ShapeReader {
 	private static final String FAST_TRAIN="高铁";
 	private static final String STATION="站";
 	
+	private static final Map<String,String> translationZnToEn;
+	static {
+		Map<String, String> tmpTrns = new HashMap<>();
+		tmpTrns.put(SOUTH, "South");
+		tmpTrns.put(EAST, "East");
+		tmpTrns.put(WEST, "West");
+		tmpTrns.put(NORTH, "North");
+		translationZnToEn = Collections.unmodifiableMap(tmpTrns);
+	}
+	
+
+	public static String CHINESE_TO_LATIN = "Han-Latin";
+	public static String CHINESE_TO_LATIN_NO_ACCENTS = "Han-Latin; nfd; [:nonspacing mark:] remove; nfc";
 	
 	
 	public static void main(String[] args) throws IOException {
@@ -96,12 +98,10 @@ public class ShapeReader {
 					String rawName=(String)prop.getValue();
 					byte[] rawBytes = rawName.getBytes("ISO_8859_1");
 					String chinese=new String(rawBytes, "UTF-8");
-					System.out.println("Name (ZN): "+chinese);
-					if (chinese.endsWith("火车站")) {
-						
-					} else if (chinese.endsWith("高铁站")) {
-						
-					}
+					
+					
+					String translated=translate(chinese);
+					System.out.println("Name (ZN): "+chinese+" - EN: "+translated);
 				} catch (UnsupportedEncodingException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -110,5 +110,34 @@ public class ShapeReader {
 				
 			}
 		}
+	}
+
+	private static String translate(String chinese) {
+		
+		String transliterated = transcribe(chinese);
+		Set<Entry<String,String>> entrySet = translationZnToEn.entrySet();
+		for (Entry<String, String> entry : entrySet) {
+			if (chinese.endsWith(entry.getKey())) {
+				String restChinese = chinese.substring(0,chinese.length()-entry.getKey().length());
+				return transcribe(restChinese)+" "+entry.getValue();
+			}			
+		}
+		return transcribe(chinese);
+	}
+
+	private static String transcribe(String chineseString) {
+		if (chineseString==null || chineseString.equals("")) {
+			return "";
+		}
+		Transliterator chineseToLatinTrans = Transliterator.getInstance(CHINESE_TO_LATIN);
+		String result1 = chineseToLatinTrans.transliterate(chineseString);
+		// System.out.println("Chinese to Latin:" + result1);
+		
+		Transliterator chineseToLatinNoAccentsTrans = Transliterator.getInstance(CHINESE_TO_LATIN_NO_ACCENTS);
+		String result2 = chineseToLatinNoAccentsTrans.transliterate(chineseString);
+		String intermediate=result2.replace(" ", "");
+		String capitalizeFirst=intermediate.substring(0,1).toUpperCase();
+		String lastPart=intermediate.substring(1);
+		return capitalizeFirst+lastPart;
 	}
 }

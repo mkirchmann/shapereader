@@ -49,6 +49,15 @@
 			<artifactId>gt-epsg-hsql</artifactId>
 			<version>24.1</version>
 		</dependency>
+		
+		<!-- https://mvnrepository.com/artifact/com.ibm.icu/icu4j -->
+		<dependency>
+		    <groupId>com.ibm.icu</groupId>
+		    <artifactId>icu4j</artifactId>
+		    <version>68.2</version>
+		</dependency>
+		
+				
 
 	</dependencies>
 	<build>
