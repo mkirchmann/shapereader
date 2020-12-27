@@ -40,7 +40,7 @@ public class ShapeReader {
 	private static final String NEW_AREA="新区";
 	private static final String DEVELOPED_AREA="开发区";
 	private static final String SCENIC_SPOT="景区";
-	private static final String INDUSTRY_PARK="园区";
+	private static final String INDUSTRIAL_PARK="园区";
 	private static final String TRAIN="火车";
 	private static final String FAST_TRAIN="高铁";
 	private static final String STATION="站";
@@ -58,7 +58,7 @@ public class ShapeReader {
 		tmpTrns.put(DEVELOPED_AREA, "Developed Area");
 		tmpTrns.put(NEW_AREA, "New Area");
 		tmpTrns.put(SCENIC_SPOT, "Scenic Spot");
-		tmpTrns.put(INDUSTRY_PARK, "Industry Park");
+		tmpTrns.put(INDUSTRIAL_PARK, "Industrial Park");
 		translationZnToEn = Collections.unmodifiableMap(tmpTrns);
 	}
 	
