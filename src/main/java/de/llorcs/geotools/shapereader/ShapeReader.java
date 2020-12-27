@@ -34,6 +34,8 @@ public class ShapeReader {
 	private static final String EAST="东";
 	private static final String NORTH="北";
 	private static final String WEST="西";
+	private static final String THREE_TOWNS="三镇";
+	private static final String AIRPORT="机场";
 	private static final String TRAIN="火车";
 	private static final String FAST_TRAIN="高铁";
 	private static final String STATION="站";
@@ -45,6 +47,8 @@ public class ShapeReader {
 		tmpTrns.put(EAST, "East");
 		tmpTrns.put(WEST, "West");
 		tmpTrns.put(NORTH, "North");
+		tmpTrns.put(THREE_TOWNS, "Three Towns");
+		tmpTrns.put(AIRPORT, "Airport");
 		translationZnToEn = Collections.unmodifiableMap(tmpTrns);
 	}
 	
